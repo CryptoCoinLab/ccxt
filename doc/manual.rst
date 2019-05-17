@@ -304,7 +304,7 @@ The ccxt library currently supports the following 135 cryptocurrency exchange ma
 +-----------------------------------------------------------------------------------------+--------------------+-----------------------------------------------------------------------------------------+-------+-----------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
 | `therock <https://therocktrading.com>`__                                                | therock            | `TheRockTrading <https://therocktrading.com>`__                                         | 1     | `API <https://api.therocktrading.com/doc/v1/index.html>`__                                          |                                                                      |
 +-----------------------------------------------------------------------------------------+--------------------+-----------------------------------------------------------------------------------------+-------+-----------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
-| `tidebit <https://www.tidebit.com>`__                                                   | tidebit            | `TideBit <https://www.tidebit.com>`__                                                   | 2     | `API <https://www.tidebit.com/documents/api/guide>`__                                               |                                                                      |
+| `tidebit <http://bit.ly/2IX0LrM>`__                                                     | tidebit            | `TideBit <http://bit.ly/2IX0LrM>`__                                                     | 2     | `API <https://www.tidebit.com/documents/api/guide>`__                                               |                                                                      |
 +-----------------------------------------------------------------------------------------+--------------------+-----------------------------------------------------------------------------------------+-------+-----------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
 | `tidex <https://tidex.com>`__                                                           | tidex              | `Tidex <https://tidex.com>`__                                                           | 3     | `API <https://tidex.com/exchange/public-api>`__                                                     |                                                                      |
 +-----------------------------------------------------------------------------------------+--------------------+-----------------------------------------------------------------------------------------+-------+-----------------------------------------------------------------------------------------------------+----------------------------------------------------------------------+
@@ -848,7 +848,7 @@ The user is required to stay within all limits and precision! The values of the 
 
 The above values can be missing with some exchanges that don’t provide info on limits from their API or don’t have it implemented yet.
 
-Methods For Foramtting Decimals
+Methods For Formatting Decimals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The exchange base class contains the ``decimalToPrecision`` method to help format values to the required decimal precision with support for different rounding, counting and padding modes.
@@ -1406,7 +1406,7 @@ This is the type of pagination currently used throughout the CCXT Unified API. T
            const trades = await exchange.fetchTrades (symbol, since, limit)
            if (trades.length) {
                since = trades[trades.length - 1]['timestamp']
-               allTrades.push (trades)
+               allTrades = allTrades.concat (trades)
            } else {
                break
            }

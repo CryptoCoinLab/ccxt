@@ -38,7 +38,7 @@ module.exports = class gateio extends Exchange {
                 '5m': '300',
                 '10m': '600',
                 '15m': '900',
-                '30m': '1200',
+                '30m': '1800',
                 '1h': '3600',
                 '2h': '7200',
                 '4h': '14400',
@@ -327,8 +327,8 @@ module.exports = class gateio extends Exchange {
             'change': change,
             'percentage': percentage,
             'average': average,
-            'baseVolume': this.safeFloat (ticker, 'quoteVolume'),
-            'quoteVolume': this.safeFloat (ticker, 'baseVolume'),
+            'baseVolume': this.safeFloat (ticker, 'baseVolume'),
+            'quoteVolume': this.safeFloat (ticker, 'quoteVolume'),
             'info': ticker,
         };
     }
@@ -680,7 +680,7 @@ module.exports = class gateio extends Exchange {
         if (since !== undefined) {
             request['start'] = since;
         }
-        const response = this.privatePostDepositswithdrawals (this.extend (request, params));
+        const response = this.privatePostDepositsWithdrawals (this.extend (request, params));
         let transactions = undefined;
         if (type === undefined) {
             const deposits = this.safeValue (response, 'deposits', []);

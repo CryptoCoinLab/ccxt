@@ -25,6 +25,10 @@ Want this place? Contact us: info@ccxt.trade
 
 [![Placehodler](https://user-images.githubusercontent.com/1707/48204972-43569e00-e37c-11e8-9cf3-b86e3dc19ee9.png)](https://ccxt.trade/advertise/)
 
+## See Also
+
+- <sub>[![Nomics API](https://user-images.githubusercontent.com/1294454/53875704-2ffbcc80-4016-11e9-828b-337409955609.png)](https://p.nomics.com/cryptocurrency-bitcoin-api)</sub>&nbsp; **[Nomics API](https://p.nomics.com/cryptocurrency-bitcoin-api)** &nbsp;— &nbsp;enterprise-grade crypto market data API for your fund, smart contract, or app.
+
 ## Certified Cryptocurrency Exchanges
 
 
@@ -35,7 +39,7 @@ Want this place? Contact us: info@ccxt.trade
 |[![bittrex](https://user-images.githubusercontent.com/1294454/27766352-cf0b3c26-5ed5-11e7-82b7-f3826b7a97d8.jpg)](https://bittrex.com)                               | bittrex  | [Bittrex](https://bittrex.com)                               | 1.1 | [API](https://bittrex.github.io/api/)                                                        | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | US                    |
 |[![coss](https://user-images.githubusercontent.com/1294454/50328158-22e53c00-0503-11e9-825c-c5cfd79bfa74.jpg)](https://www.coss.io/c/reg?r=OWCMHQVW2Q)               | coss     | [COSS](https://www.coss.io/c/reg?r=OWCMHQVW2Q)               | 1   | [API](https://api.coss.io/v1/spec)                                                           | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | Singapore, Netherlands|
 |[![kraken](https://user-images.githubusercontent.com/1294454/27766599-22709304-5ede-11e7-9de1-9f33732e1509.jpg)](https://www.kraken.com)                             | kraken   | [Kraken](https://www.kraken.com)                             | 0   | [API](https://www.kraken.com/en-us/help/api)                                                 | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | US                    |
-|[![kucoin](https://user-images.githubusercontent.com/1294454/51909432-b0a72780-23dd-11e9-99ba-73d23c8d4eed.jpg)](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe) | kucoin   | [KuCoin](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe) | 2   | [API](https://docs.kucoin.com)                                                               | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | Seychelles            |
+|[![kucoin](https://user-images.githubusercontent.com/1294454/57369448-3cc3aa80-7196-11e9-883e-5ebeb35e4f57.jpg)](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe) | kucoin   | [KuCoin](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe) | 2   | [API](https://docs.kucoin.com)                                                               | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | Seychelles            |
 |[![theocean](https://user-images.githubusercontent.com/1294454/43103756-d56613ce-8ed7-11e8-924e-68f9d4bcacab.jpg)](https://theocean.trade)                           | theocean | [The Ocean](https://theocean.trade)                          | 1   | [API](https://docs.theocean.trade)                                                           | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | US                    |
 |[![upbit](https://user-images.githubusercontent.com/1294454/49245610-eeaabe00-f423-11e8-9cba-4b0aed794799.jpg)](https://upbit.com)                                   | upbit    | [Upbit](https://upbit.com)                                   | 1   | [API](https://docs.upbit.com/docs/%EC%9A%94%EC%B2%AD-%EC%88%98-%EC%A0%9C%ED%95%9C)           | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | South Korea           |
 
@@ -141,7 +145,7 @@ The ccxt library currently supports the following 135 cryptocurrency exchange ma
 |[![jubi](https://user-images.githubusercontent.com/1294454/27766581-9d397d9a-5edd-11e7-8fb9-5d8236c0e692.jpg)](https://www.jubi.com)                                                         | jubi               | [jubi.com](https://www.jubi.com)                                                     | 1     | [API](https://www.jubi.com/help/api.html)                                                        |                                                                                                                             | China                                   |
 |[![kkex](https://user-images.githubusercontent.com/1294454/47401462-2e59f800-d74a-11e8-814f-e4ae17b4968a.jpg)](https://kkex.com)                                                             | kkex               | [KKEX](https://kkex.com)                                                             | 2     | [API](https://kkex.com/api_wiki/cn/)                                                             |                                                                                                                             | China, US, Japan                        |
 |[![kraken](https://user-images.githubusercontent.com/1294454/27766599-22709304-5ede-11e7-9de1-9f33732e1509.jpg)](https://www.kraken.com)                                                     | kraken             | [Kraken](https://www.kraken.com)                                                     | 0     | [API](https://www.kraken.com/en-us/help/api)                                                     | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | US                                      |
-|[![kucoin](https://user-images.githubusercontent.com/1294454/51909432-b0a72780-23dd-11e9-99ba-73d23c8d4eed.jpg)](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe)                         | kucoin             | [KuCoin](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe)                         | 2     | [API](https://docs.kucoin.com)                                                                   | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | Seychelles                              |
+|[![kucoin](https://user-images.githubusercontent.com/1294454/57369448-3cc3aa80-7196-11e9-883e-5ebeb35e4f57.jpg)](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe)                         | kucoin             | [KuCoin](https://www.kucoin.com/ucenter/signup?rcode=E5wkqe)                         | 2     | [API](https://docs.kucoin.com)                                                                   | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | Seychelles                              |
 |[![kuna](https://user-images.githubusercontent.com/1294454/31697638-912824fa-b3c1-11e7-8c36-cf9606eb94ac.jpg)](https://kuna.io)                                                              | kuna               | [Kuna](https://kuna.io)                                                              | 2     | [API](https://kuna.io/documents/api)                                                             |                                                                                                                             | Ukraine                                 |
 |[![lakebtc](https://user-images.githubusercontent.com/1294454/28074120-72b7c38a-6660-11e7-92d9-d9027502281d.jpg)](https://www.lakebtc.com)                                                   | lakebtc            | [LakeBTC](https://www.lakebtc.com)                                                   | 2     | [API](https://www.lakebtc.com/s/api_v2)                                                          |                                                                                                                             | US                                      |
 |[![lbank](https://user-images.githubusercontent.com/1294454/38063602-9605e28a-3302-11e8-81be-64b1e53c4cfb.jpg)](https://www.lbank.info/sign-up.html?icode=7QCY&lang=en-US)                   | lbank              | [LBank](https://www.lbank.info/sign-up.html?icode=7QCY&lang=en-US)                   | 1     | [API](https://github.com/LBank-exchange/lbank-official-api-docs)                                 |                                                                                                                             | China                                   |
@@ -167,7 +171,7 @@ The ccxt library currently supports the following 135 cryptocurrency exchange ma
 |[![surbitcoin](https://user-images.githubusercontent.com/1294454/27991511-f0a50194-6481-11e7-99b5-8f02932424cc.jpg)](https://surbitcoin.com)                                                 | surbitcoin         | [SurBitcoin](https://surbitcoin.com)                                                 | 1     | [API](https://blinktrade.com/docs)                                                               |                                                                                                                             | Venezuela                               |
 |[![theocean](https://user-images.githubusercontent.com/1294454/43103756-d56613ce-8ed7-11e8-924e-68f9d4bcacab.jpg)](https://theocean.trade)                                                   | theocean           | [The Ocean](https://theocean.trade)                                                  | 1     | [API](https://docs.theocean.trade)                                                               | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | US                                      |
 |[![therock](https://user-images.githubusercontent.com/1294454/27766869-75057fa2-5ee9-11e7-9a6f-13e641fa4707.jpg)](https://therocktrading.com)                                                | therock            | [TheRockTrading](https://therocktrading.com)                                         | 1     | [API](https://api.therocktrading.com/doc/v1/index.html)                                          |                                                                                                                             | Malta                                   |
-|[![tidebit](https://user-images.githubusercontent.com/1294454/39034921-e3acf016-4480-11e8-9945-a6086a1082fe.jpg)](https://www.tidebit.com)                                                   | tidebit            | [TideBit](https://www.tidebit.com)                                                   | 2     | [API](https://www.tidebit.com/documents/api/guide)                                               |                                                                                                                             | Hong Kong                               |
+|[![tidebit](https://user-images.githubusercontent.com/1294454/39034921-e3acf016-4480-11e8-9945-a6086a1082fe.jpg)](http://bit.ly/2IX0LrM)                                                     | tidebit            | [TideBit](http://bit.ly/2IX0LrM)                                                     | 2     | [API](https://www.tidebit.com/documents/api/guide)                                               |                                                                                                                             | Hong Kong                               |
 |[![tidex](https://user-images.githubusercontent.com/1294454/30781780-03149dc4-a12e-11e7-82bb-313b269d24d4.jpg)](https://tidex.com)                                                           | tidex              | [Tidex](https://tidex.com)                                                           | 3     | [API](https://tidex.com/exchange/public-api)                                                     |                                                                                                                             | UK                                      |
 |[![uex](https://user-images.githubusercontent.com/1294454/43999923-051d9884-9e1f-11e8-965a-76948cb17678.jpg)](https://www.uex.com/signup.html?code=VAGQLL)                                   | uex                | [UEX](https://www.uex.com/signup.html?code=VAGQLL)                                   | 1.0.3 | [API](https://download.uex.com/doc/UEX-API-English-1.0.3.pdf)                                    |                                                                                                                             | Singapore, US                           |
 |[![upbit](https://user-images.githubusercontent.com/1294454/49245610-eeaabe00-f423-11e8-9cba-4b0aed794799.jpg)](https://upbit.com)                                                           | upbit              | [Upbit](https://upbit.com)                                                           | 1     | [API](https://docs.upbit.com/docs/%EC%9A%94%EC%B2%AD-%EC%88%98-%EC%A0%9C%ED%95%9C)               | [![CCXT Certified](https://img.shields.io/badge/CCXT-certified-green.svg)](https://github.com/ccxt/ccxt/wiki/Certification) | South Korea                             |
@@ -226,13 +230,13 @@ console.log (ccxt.exchanges) // print all available exchanges
 
 All-in-one browser bundle (dependencies included), served from a CDN of your choice:
 
-* jsDelivr: https://cdn.jsdelivr.net/npm/ccxt@1.18.489/dist/ccxt.browser.js
-* unpkg: https://unpkg.com/ccxt@1.18.489/dist/ccxt.browser.js
+* jsDelivr: https://cdn.jsdelivr.net/npm/ccxt@1.18.535/dist/ccxt.browser.js
+* unpkg: https://unpkg.com/ccxt@1.18.535/dist/ccxt.browser.js
 
 CDNs are not updated in real-time and may have delays. Defaulting to the most recent version without specifying the version number is not recommended. Please, keep in mind that we are not responsible for the correct operation of those CDN servers.
 
 ```HTML
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ccxt@1.18.489/dist/ccxt.browser.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/ccxt@1.18.535/dist/ccxt.browser.js"></script>
 ```
 
 Creates a global `ccxt` object:
@@ -344,7 +348,7 @@ const ccxt = require ('ccxt');
 (async function () {
     let kraken    = new ccxt.kraken ()
     let bitfinex  = new ccxt.bitfinex ({ verbose: true })
-    let huobi     = new ccxt.huobi ()
+    let huobipro  = new ccxt.huobipro ()
     let okcoinusd = new ccxt.okcoinusd ({
         apiKey: 'YOUR_PUBLIC_API_KEY',
         secret: 'YOUR_SECRET_PRIVATE_KEY',
@@ -361,11 +365,11 @@ const ccxt = require ('ccxt');
 
     console.log (kraken.id,    await kraken.loadMarkets ())
     console.log (bitfinex.id,  await bitfinex.loadMarkets  ())
-    console.log (huobi.id,     await huobi.loadMarkets ())
+    console.log (huobipro.id,  await huobipro.loadMarkets ())
 
     console.log (kraken.id,    await kraken.fetchOrderBook (kraken.symbols[0]))
     console.log (bitfinex.id,  await bitfinex.fetchTicker ('BTC/USD'))
-    console.log (huobi.id,     await huobi.fetchTrades ('ETH/CNY'))
+    console.log (huobipro.id,  await huobipro.fetchTrades ('ETH/CNY'))
 
     console.log (okcoinusd.id, await okcoinusd.fetchBalance ())
 
@@ -389,10 +393,10 @@ const ccxt = require ('ccxt');
 
 import ccxt
 
-hitbtc = ccxt.hitbtc({'verbose': True})
-bitmex = ccxt.bitmex()
-huobi  = ccxt.huobi()
-exmo   = ccxt.exmo({
+hitbtc   = ccxt.hitbtc({'verbose': True})
+bitmex   = ccxt.bitmex()
+huobipro = ccxt.huobipro()
+exmo     = ccxt.exmo({
     'apiKey': 'YOUR_PUBLIC_API_KEY',
     'secret': 'YOUR_SECRET_PRIVATE_KEY',
 })
@@ -414,11 +418,11 @@ hitbtc_markets = hitbtc.load_markets()
 
 print(hitbtc.id, hitbtc_markets)
 print(bitmex.id, bitmex.load_markets())
-print(huobi.id, huobi.load_markets())
+print(huobipro.id, huobipro.load_markets())
 
 print(hitbtc.fetch_order_book(hitbtc.symbols[0]))
 print(bitmex.fetch_ticker('BTC/USD'))
-print(huobi.fetch_trades('LTC/CNY'))
+print(huobipro.fetch_trades('LTC/CNY'))
 
 print(exmo.fetch_balance())
 
