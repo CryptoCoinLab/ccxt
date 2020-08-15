@@ -12,17 +12,20 @@ try:
 except NameError:
     basestring = str  # Python 2
 import math
+import json
 from ccxt.base.errors import ExchangeError
 from ccxt.base.errors import AuthenticationError
 from ccxt.base.errors import PermissionDenied
+from ccxt.base.errors import ArgumentsRequired
 from ccxt.base.errors import InsufficientFunds
 from ccxt.base.errors import InvalidAddress
+from ccxt.base.errors import InvalidOrder
 from ccxt.base.errors import OrderNotFound
 from ccxt.base.errors import NotSupported
 from ccxt.base.errors import InvalidNonce
 
 
-class bitstamp (Exchange):
+class bitstamp(Exchange):
 
     def describe(self):
         return self.deep_extend(super(bitstamp, self).describe(), {
@@ -31,21 +34,49 @@ class bitstamp (Exchange):
             'countries': ['GB'],
             'rateLimit': 1000,
             'version': 'v2',
+            'userAgent': self.userAgents['chrome'],
+            'pro': True,
             'has': {
+                'cancelOrder': True,
                 'CORS': True,
+                'createOrder': True,
+                'fetchBalance': True,
                 'fetchDepositAddress': True,
-                'fetchOrder': 'emulated',
-                'fetchOpenOrders': True,
+                'fetchMarkets': True,
                 'fetchMyTrades': True,
+                'fetchOHLCV': True,
+                'fetchOpenOrders': True,
+                'fetchOrder': True,
+                'fetchOrderBook': True,
+                'fetchTicker': True,
+                'fetchTrades': True,
                 'fetchTransactions': True,
                 'fetchWithdrawals': True,
                 'withdraw': True,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/27786377-8c8ab57e-5fe9-11e7-8ea4-2b05b6bcceec.jpg',
-                'api': 'https://www.bitstamp.net/api',
+                'api': {
+                    'public': 'https://www.bitstamp.net/api',
+                    'private': 'https://www.bitstamp.net/api',
+                    'v1': 'https://www.bitstamp.net/api',
+                },
                 'www': 'https://www.bitstamp.net',
                 'doc': 'https://www.bitstamp.net/api',
+            },
+            'timeframes': {
+                '1m': '60',
+                '3m': '180',
+                '5m': '300',
+                '15m': '900',
+                '30m': '1800',
+                '1h': '3600',
+                '2h': '7200',
+                '4h': '14400',
+                '6h': '21600',
+                '12h': '43200',
+                '1d': '86400',
+                '1w': '259200',
             },
             'requiredCredentials': {
                 'apiKey': True,
@@ -55,6 +86,7 @@ class bitstamp (Exchange):
             'api': {
                 'public': {
                     'get': [
+                        'ohlc/{pair}/',
                         'order_book/{pair}/',
                         'ticker_hour/{pair}/',
                         'ticker/{pair}/',
@@ -110,13 +142,14 @@ class bitstamp (Exchange):
                 'trading': {
                     'tierBased': True,
                     'percentage': True,
-                    'taker': 0.25 / 100,
-                    'maker': 0.25 / 100,
+                    'taker': 0.5 / 100,
+                    'maker': 0.5 / 100,
                     'tiers': {
                         'taker': [
-                            [0, 0.25 / 100],
-                            [20000, 0.24 / 100],
-                            [100000, 0.22 / 100],
+                            [0, 0.5 / 100],
+                            [20000, 0.25 / 100],
+                            [100000, 0.24 / 100],
+                            [200000, 0.22 / 100],
                             [400000, 0.20 / 100],
                             [600000, 0.15 / 100],
                             [1000000, 0.14 / 100],
@@ -126,9 +159,10 @@ class bitstamp (Exchange):
                             [20000001, 0.10 / 100],
                         ],
                         'maker': [
-                            [0, 0.25 / 100],
-                            [20000, 0.24 / 100],
-                            [100000, 0.22 / 100],
+                            [0, 0.5 / 100],
+                            [20000, 0.25 / 100],
+                            [100000, 0.24 / 100],
+                            [200000, 0.22 / 100],
                             [400000, 0.20 / 100],
                             [600000, 0.15 / 100],
                             [1000000, 0.14 / 100],
@@ -174,8 +208,10 @@ class bitstamp (Exchange):
                     'Your account is frozen': PermissionDenied,
                     'Please update your profile with your FATCA information, before using API.': PermissionDenied,
                     'Order not found': OrderNotFound,
+                    'Price is more than 20% below market price.': InvalidOrder,
                 },
                 'broad': {
+                    'Minimum order size is': InvalidOrder,  # Minimum order size is 5.0 EUR.
                     'Check your account balance for details.': InsufficientFunds,  # You have only 0.00100000 BTC available. Check your account balance for details.
                     'Ensure self value has at least': InvalidAddress,  # Ensure self value has at least 25 characters(it has 4).
                 },
@@ -183,16 +219,19 @@ class bitstamp (Exchange):
         })
 
     async def fetch_markets(self, params={}):
-        markets = await self.publicGetTradingPairsInfo()
+        response = await self.publicGetTradingPairsInfo(params)
         result = []
-        for i in range(0, len(markets)):
-            market = markets[i]
-            symbol = market['name']
-            base, quote = symbol.split('/')
+        for i in range(0, len(response)):
+            market = response[i]
+            name = self.safe_string(market, 'name')
+            base, quote = name.split('/')
             baseId = base.lower()
             quoteId = quote.lower()
+            base = self.safe_currency_code(base)
+            quote = self.safe_currency_code(quote)
+            symbol = base + '/' + quote
             symbolId = baseId + '_' + quoteId
-            id = market['url_symbol']
+            id = self.safe_string(market, 'url_symbol')
             precision = {
                 'amount': market['base_decimals'],
                 'price': market['counter_decimals'],
@@ -231,18 +270,39 @@ class bitstamp (Exchange):
 
     async def fetch_order_book(self, symbol, limit=None, params={}):
         await self.load_markets()
-        orderbook = await self.publicGetOrderBookPair(self.extend({
+        request = {
             'pair': self.market_id(symbol),
-        }, params))
-        timestamp = int(orderbook['timestamp']) * 1000
-        return self.parse_order_book(orderbook, timestamp)
+        }
+        response = await self.publicGetOrderBookPair(self.extend(request, params))
+        #
+        #     {
+        #         "timestamp": "1583652948",
+        #         "microtimestamp": "1583652948955826",
+        #         "bids": [
+        #             ["8750.00", "1.33685271"],
+        #             ["8749.39", "0.07700000"],
+        #             ["8746.98", "0.07400000"],
+        #         ]
+        #         "asks": [
+        #             ["8754.10", "1.51995636"],
+        #             ["8754.71", "1.40000000"],
+        #             ["8754.72", "2.50000000"],
+        #         ]
+        #     }
+        #
+        microtimestamp = self.safe_integer(response, 'microtimestamp')
+        timestamp = int(microtimestamp / 1000)
+        orderbook = self.parse_order_book(response, timestamp)
+        orderbook['nonce'] = microtimestamp
+        return orderbook
 
     async def fetch_ticker(self, symbol, params={}):
         await self.load_markets()
-        ticker = await self.publicGetTickerPair(self.extend({
+        request = {
             'pair': self.market_id(symbol),
-        }, params))
-        timestamp = int(ticker['timestamp']) * 1000
+        }
+        ticker = await self.publicGetTickerPair(self.extend(request, params))
+        timestamp = self.safe_timestamp(ticker, 'timestamp')
         vwap = self.safe_float(ticker, 'vwap')
         baseVolume = self.safe_float(ticker, 'volume')
         quoteVolume = None
@@ -286,8 +346,9 @@ class bitstamp (Exchange):
         #         "eur": 0.0
         #     }
         #
-        if 'currency' in transaction:
-            return transaction['currency'].lower()
+        currencyId = self.safe_string_lower(transaction, 'currency')
+        if currencyId is not None:
+            return currencyId
         transaction = self.omit(transaction, [
             'fee',
             'price',
@@ -301,7 +362,7 @@ class bitstamp (Exchange):
             id = ids[i]
             if id.find('_') < 0:
                 value = self.safe_float(transaction, id)
-                if (value is not None) and(value != 0):
+                if (value is not None) and (value != 0):
                     return id
         return None
 
@@ -360,6 +421,14 @@ class bitstamp (Exchange):
         #         "type": 2
         #     }
         #
+        # from fetchOrder:
+        #    {fee: '0.000019',
+        #     price: '0.00015803',
+        #     datetime: '2018-01-07 10:45:34.132551',
+        #     btc: '0.0079015000000000',
+        #     tid: 42777395,
+        #     type: 2,  #(0 - deposit; 1 - withdrawal; 2 - market trade) NOT buy/sell
+        #     xrp: '50.00000000'}
         id = self.safe_string_2(trade, 'id', 'tid')
         symbol = None
         side = None
@@ -431,6 +500,7 @@ class bitstamp (Exchange):
             'order': orderId,
             'type': type,
             'side': side,
+            'takerOrMaker': None,
             'price': price,
             'amount': amount,
             'cost': cost,
@@ -440,10 +510,11 @@ class bitstamp (Exchange):
     async def fetch_trades(self, symbol, since=None, limit=None, params={}):
         await self.load_markets()
         market = self.market(symbol)
-        response = await self.publicGetTransactionsPair(self.extend({
+        request = {
             'pair': market['id'],
             'time': 'hour',
-        }, params))
+        }
+        response = await self.publicGetTransactionsPair(self.extend(request, params))
         #
         #     [
         #         {
@@ -464,25 +535,80 @@ class bitstamp (Exchange):
         #
         return self.parse_trades(response, market, since, limit)
 
+    def parse_ohlcv(self, ohlcv, market=None):
+        #
+        #     {
+        #         "high": "9064.77",
+        #         "timestamp": "1593961440",
+        #         "volume": "18.49436608",
+        #         "low": "9040.87",
+        #         "close": "9064.77",
+        #         "open": "9040.87"
+        #     }
+        #
+        return [
+            self.safe_timestamp(ohlcv, 'timestamp'),
+            self.safe_float(ohlcv, 'open'),
+            self.safe_float(ohlcv, 'high'),
+            self.safe_float(ohlcv, 'low'),
+            self.safe_float(ohlcv, 'close'),
+            self.safe_float(ohlcv, 'volume'),
+        ]
+
+    async def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
+        await self.load_markets()
+        market = self.market(symbol)
+        request = {
+            'pair': market['id'],
+            'step': self.timeframes[timeframe],
+        }
+        duration = self.parse_timeframe(timeframe)
+        if limit is None:
+            if since is None:
+                raise ArgumentsRequired(self.id + ' fetchOHLCV requires a since argument or a limit argument')
+            else:
+                limit = 1000
+                start = int(since / 1000)
+                request['start'] = start
+                request['end'] = self.sum(start, limit * duration)
+                request['limit'] = limit
+        else:
+            if since is not None:
+                start = int(since / 1000)
+                request['start'] = start
+                request['end'] = self.sum(start, limit * duration)
+            request['limit'] = min(limit, 1000)  # min 1, max 1000
+        response = await self.publicGetOhlcPair(self.extend(request, params))
+        #
+        #     {
+        #         "data": {
+        #             "pair": "BTC/USD",
+        #             "ohlc": [
+        #                 {"high": "9064.77", "timestamp": "1593961440", "volume": "18.49436608", "low": "9040.87", "close": "9064.77", "open": "9040.87"},
+        #                 {"high": "9071.59", "timestamp": "1593961500", "volume": "3.48631711", "low": "9058.76", "close": "9061.07", "open": "9064.66"},
+        #                 {"high": "9067.33", "timestamp": "1593961560", "volume": "0.04142833", "low": "9061.94", "close": "9061.94", "open": "9067.33"},
+        #             ],
+        #         }
+        #     }
+        #
+        data = self.safe_value(response, 'data', {})
+        ohlc = self.safe_value(data, 'ohlc', [])
+        return self.parse_ohlcvs(ohlc, market, timeframe, since, limit)
+
     async def fetch_balance(self, params={}):
         await self.load_markets()
-        balance = await self.privatePostBalance()
+        balance = await self.privatePostBalance(params)
         result = {'info': balance}
-        currencies = list(self.currencies.keys())
-        for i in range(0, len(currencies)):
-            currency = currencies[i]
-            lowercase = currency.lower()
-            total = lowercase + '_balance'
-            free = lowercase + '_available'
-            used = lowercase + '_reserved'
+        codes = list(self.currencies.keys())
+        for i in range(0, len(codes)):
+            code = codes[i]
+            currency = self.currency(code)
+            currencyId = currency['id']
             account = self.account()
-            if free in balance:
-                account['free'] = float(balance[free])
-            if used in balance:
-                account['used'] = float(balance[used])
-            if total in balance:
-                account['total'] = float(balance[total])
-            result[currency] = account
+            account['free'] = self.safe_float(balance, currencyId + '_available')
+            account['used'] = self.safe_float(balance, currencyId + '_reserved')
+            account['total'] = self.safe_float(balance, currencyId + '_balance')
+            result[code] = account
         return self.parse_balance(result)
 
     async def create_order(self, symbol, type, side, amount, price=None, params={}):
@@ -506,7 +632,10 @@ class bitstamp (Exchange):
 
     async def cancel_order(self, id, symbol=None, params={}):
         await self.load_markets()
-        return await self.privatePostCancelOrder({'id': id})
+        request = {
+            'id': id,
+        }
+        return await self.privatePostCancelOrder(self.extend(request, params))
 
     def parse_order_status(self, status):
         statuses = {
@@ -515,11 +644,13 @@ class bitstamp (Exchange):
             'Finished': 'closed',
             'Canceled': 'canceled',
         }
-        return statuses[status] if (status in list(statuses.keys())) else status
+        return self.safe_string(statuses, status, status)
 
     async def fetch_order_status(self, id, symbol=None, params={}):
         await self.load_markets()
-        request = {'id': id}
+        request = {
+            'id': id,
+        }
         response = await self.privatePostOrderStatus(self.extend(request, params))
         return self.parse_order_status(self.safe_string(response, 'status'))
 
@@ -599,7 +730,7 @@ class bitstamp (Exchange):
         if code is not None:
             currency = self.currency(code)
         transactions = self.filter_by_array(response, 'type', ['0', '1'], False)
-        return self.parseTransactions(transactions, currency, since, limit)
+        return self.parse_transactions(transactions, currency, since, limit)
 
     async def fetch_withdrawals(self, code=None, since=None, limit=None, params={}):
         await self.load_markets()
@@ -631,7 +762,7 @@ class bitstamp (Exchange):
         #         },
         #     ]
         #
-        return self.parseTransactions(response, None, since, limit)
+        return self.parse_transactions(response, None, since, limit)
 
     def parse_transaction(self, transaction, currency=None):
         #
@@ -662,61 +793,91 @@ class bitstamp (Exchange):
         #         transaction_id: 'xxxx',
         #     }
         #
+        #     {
+        #         "id": 3386432,
+        #         "type": 14,
+        #         "amount": "863.21332500",
+        #         "status": 2,
+        #         "address": "rE1sdh25BJQ3qFwngiTBwaq3zPGGYcrjp1?dt=1455",
+        #         "currency": "XRP",
+        #         "datetime": "2018-01-05 15:27:55",
+        #         "transaction_id": "001743B03B0C79BA166A064AC0142917B050347B4CB23BA2AB4B91B3C5608F4C"
+        #     }
+        #
         timestamp = self.parse8601(self.safe_string(transaction, 'datetime'))
-        code = None
         id = self.safe_string(transaction, 'id')
         currencyId = self.get_currency_id_from_transaction(transaction)
-        if currencyId in self.currencies_by_id:
-            currency = self.currencies_by_id[currencyId]
-        elif currencyId is not None:
-            code = currencyId.upper()
-            code = self.common_currency_code(code)
+        code = self.safe_currency_code(currencyId, currency)
         feeCost = self.safe_float(transaction, 'fee')
         feeCurrency = None
         amount = None
-        if currency is not None:
+        if 'amount' in transaction:
+            amount = self.safe_float(transaction, 'amount')
+        elif currency is not None:
             amount = self.safe_float(transaction, currency['id'], amount)
             feeCurrency = currency['code']
-            code = currency['code']
-        elif (code is not None) and(currencyId is not None):
+        elif (code is not None) and (currencyId is not None):
             amount = self.safe_float(transaction, currencyId, amount)
             feeCurrency = code
         if amount is not None:
             # withdrawals have a negative amount
             amount = abs(amount)
-        status = self.parse_transaction_status_by_type(self.safe_string(transaction, 'status'))
-        type = self.safe_string(transaction, 'type')
-        if status is None:
-            if type == '0':
+        status = 'ok'
+        if 'status' in transaction:
+            status = self.parse_transaction_status(self.safe_string(transaction, 'status'))
+        type = None
+        if 'type' in transaction:
+            # from fetchTransactions
+            rawType = self.safe_string(transaction, 'type')
+            if rawType == '0':
                 type = 'deposit'
-            elif type == '1':
+            elif rawType == '1':
                 type = 'withdrawal'
         else:
+            # from fetchWithdrawals
             type = 'withdrawal'
         txid = self.safe_string(transaction, 'transaction_id')
+        tag = None
         address = self.safe_string(transaction, 'address')
-        tag = None  # not documented
+        if address is not None:
+            # dt(destination tag) is embedded into the address field
+            addressParts = address.split('?dt=')
+            numParts = len(addressParts)
+            if numParts > 1:
+                address = addressParts[0]
+                tag = addressParts[1]
+        addressFrom = None
+        addressTo = address
+        tagFrom = None
+        tagTo = tag
+        fee = None
+        if feeCost is not None:
+            fee = {
+                'currency': feeCurrency,
+                'cost': feeCost,
+                'rate': None,
+            }
         return {
             'info': transaction,
             'id': id,
             'txid': txid,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
+            'addressFrom': addressFrom,
+            'addressTo': addressTo,
             'address': address,
+            'tagFrom': tagFrom,
+            'tagTo': tagTo,
             'tag': tag,
             'type': type,
             'amount': amount,
             'currency': code,
             'status': status,
             'updated': None,
-            'fee': {
-                'currency': feeCurrency,
-                'cost': feeCost,
-                'rate': None,
-            },
+            'fee': fee,
         }
 
-    def parse_transaction_status_by_type(self, status):
+    def parse_transaction_status(self, status):
         # withdrawals:
         # 0(open), 1(in process), 2(finished), 3(canceled) or 4(failed).
         statuses = {
@@ -729,7 +890,32 @@ class bitstamp (Exchange):
         return self.safe_string(statuses, status, status)
 
     def parse_order(self, order, market=None):
+        # from fetch order:
+        #   {status: 'Finished',
+        #     id: 731693945,
+        #     transactions:
+        #     [{fee: '0.000019',
+        #         price: '0.00015803',
+        #         datetime: '2018-01-07 10:45:34.132551',
+        #         btc: '0.0079015000000000',
+        #         tid: 42777395,
+        #         type: 2,
+        #         xrp: '50.00000000'}]}
         #
+        # partially filled order:
+        #   {"id": 468646390,
+        #     "status": "Canceled",
+        #     "transactions": [{
+        #         "eth": "0.23000000",
+        #         "fee": "0.09",
+        #         "tid": 25810126,
+        #         "usd": "69.8947000000000000",
+        #         "type": 2,
+        #         "price": "303.89000000",
+        #         "datetime": "2017-11-11 07:22:20.710567"
+        #     }]}
+        #
+        # from create order response:
         #     {
         #         price: '0.00008012',
         #         currency_pair: 'XRP/BTC',
@@ -743,37 +929,39 @@ class bitstamp (Exchange):
         side = self.safe_string(order, 'type')
         if side is not None:
             side = 'sell' if (side == '1') else 'buy'
+        # there is no timestamp from fetchOrder
         timestamp = self.parse8601(self.safe_string(order, 'datetime'))
+        lastTradeTimestamp = None
         symbol = None
-        marketId = self.safe_string(order, 'currency_pair')
+        marketId = self.safe_string_lower(order, 'currency_pair')
         if marketId is not None:
             marketId = marketId.replace('/', '')
-            marketId = marketId.lower()
             if marketId in self.markets_by_id:
                 market = self.markets_by_id[marketId]
                 symbol = market['symbol']
         amount = self.safe_float(order, 'amount')
         filled = 0.0
         trades = []
-        transactions = self.safe_value(order, 'transactions')
+        transactions = self.safe_value(order, 'transactions', [])
         feeCost = None
         cost = None
-        if transactions is not None:
-            if isinstance(transactions, list):
-                feeCost = 0.0
-                for i in range(0, len(transactions)):
-                    trade = self.parse_trade(self.extend({
-                        'order_id': id,
-                        'side': side,
-                    }, transactions[i]), market)
-                    filled += trade['amount']
-                    feeCost += trade['fee']['cost']
-                    if cost is None:
-                        cost = 0.0
-                    cost += trade['cost']
-                    trades.append(trade)
+        numTransactions = len(transactions)
+        if numTransactions > 0:
+            feeCost = 0.0
+            for i in range(0, numTransactions):
+                trade = self.parse_trade(self.extend({
+                    'order_id': id,
+                    'side': side,
+                }, transactions[i]), market)
+                filled = self.sum(filled, trade['amount'])
+                feeCost = self.sum(feeCost, trade['fee']['cost'])
+                if cost is None:
+                    cost = 0.0
+                cost = self.sum(cost, trade['cost'])
+                trades.append(trade)
+            lastTradeTimestamp = trades[numTransactions - 1]['timestamp']
         status = self.parse_order_status(self.safe_string(order, 'status'))
-        if (status == 'closed') and(amount is None):
+        if (status == 'closed') and (amount is None):
             amount = filled
         remaining = None
         if amount is not None:
@@ -801,9 +989,10 @@ class bitstamp (Exchange):
                 }
         return {
             'id': id,
+            'clientOrderId': None,
             'datetime': self.iso8601(timestamp),
             'timestamp': timestamp,
-            'lastTradeTimestamp': None,
+            'lastTradeTimestamp': lastTradeTimestamp,
             'status': status,
             'symbol': symbol,
             'type': None,
@@ -816,6 +1005,7 @@ class bitstamp (Exchange):
             'trades': trades,
             'fee': fee,
             'info': order,
+            'average': None,
         }
 
     async def fetch_open_orders(self, symbol=None, since=None, limit=None, params={}):
@@ -868,6 +1058,8 @@ class bitstamp (Exchange):
         method += 'Deposit' if v1 else ''
         method += 'Address'
         response = await getattr(self, method)(params)
+        if v1:
+            response = json.loads(response)
         address = response if v1 else self.safe_string(response, 'address')
         tag = None if v1 else self.safe_string(response, 'destination_tag')
         self.check_address(address)
@@ -890,21 +1082,20 @@ class bitstamp (Exchange):
         v1 = (code == 'BTC')
         method = 'v1' if v1 else 'private'  # v1 or v2
         method += 'Post' + self.capitalize(name) + 'Withdrawal'
-        query = params
         if code == 'XRP':
             if tag is not None:
                 request['destination_tag'] = tag
-                query = self.omit(params, 'destination_tag')
-            else:
-                raise ExchangeError(self.id + ' withdraw() requires a destination_tag param for ' + code)
-        response = await getattr(self, method)(self.extend(request, query))
+        response = await getattr(self, method)(self.extend(request, params))
         return {
             'info': response,
             'id': response['id'],
         }
 
+    def nonce(self):
+        return self.milliseconds()
+
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
-        url = self.urls['api'] + '/'
+        url = self.urls['api'][api] + '/'
         if api != 'v1':
             url += self.version + '/'
         url += self.implode_params(path, params)
@@ -914,31 +1105,65 @@ class bitstamp (Exchange):
                 url += '?' + self.urlencode(query)
         else:
             self.check_required_credentials()
-            nonce = str(self.nonce())
-            auth = nonce + self.uid + self.apiKey
-            signature = self.encode(self.hmac(self.encode(auth), self.encode(self.secret)))
-            query = self.extend({
-                'key': self.apiKey,
-                'signature': signature.upper(),
-                'nonce': nonce,
-            }, query)
-            body = self.urlencode(query)
-            headers = {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            }
+            authVersion = self.safe_value(self.options, 'auth', 'v2')
+            if (authVersion == 'v1') or (api == 'v1'):
+                nonce = str(self.nonce())
+                auth = nonce + self.uid + self.apiKey
+                signature = self.encode(self.hmac(self.encode(auth), self.encode(self.secret)))
+                query = self.extend({
+                    'key': self.apiKey,
+                    'signature': signature.upper(),
+                    'nonce': nonce,
+                }, query)
+                body = self.urlencode(query)
+                headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            else:
+                xAuth = 'BITSTAMP ' + self.apiKey
+                xAuthNonce = self.uuid()
+                xAuthTimestamp = str(self.milliseconds())
+                xAuthVersion = 'v2'
+                contentType = ''
+                headers = {
+                    'X-Auth': xAuth,
+                    'X-Auth-Nonce': xAuthNonce,
+                    'X-Auth-Timestamp': xAuthTimestamp,
+                    'X-Auth-Version': xAuthVersion,
+                }
+                if method == 'POST':
+                    if query:
+                        body = self.urlencode(query)
+                        contentType = 'application/x-www-form-urlencoded'
+                        headers['Content-Type'] = contentType
+                    else:
+                        # sending an empty POST request will trigger
+                        # an API0020 error returned by the exchange
+                        # therefore for empty requests we send a dummy object
+                        # https://github.com/ccxt/ccxt/issues/6846
+                        body = self.urlencode({'foo': 'bar'})
+                        contentType = 'application/x-www-form-urlencoded'
+                        headers['Content-Type'] = contentType
+                authBody = body if body else ''
+                auth = xAuth + method + url.replace('https://', '') + contentType + xAuthNonce + xAuthTimestamp + xAuthVersion + authBody
+                signature = self.hmac(self.encode(auth), self.encode(self.secret))
+                headers['X-Auth-Signature'] = signature
         return {'url': url, 'method': method, 'body': body, 'headers': headers}
 
-    def handle_errors(self, httpCode, reason, url, method, headers, body, response):
+    def handle_errors(self, httpCode, reason, url, method, headers, body, response, requestHeaders, requestBody):
         if response is None:
             return
-        # fetchDepositAddress returns {"error": "No permission found"} on apiKeys that don't have the permission required
+        #
+        #     {"error": "No permission found"}  # fetchDepositAddress returns self on apiKeys that don't have the permission required
+        #     {"status": "error", "reason": {"__all__": ["Minimum order size is 5.0 EUR."]}}
+        #     reuse of a nonce gives: {status: 'error', reason: 'Invalid nonce', code: 'API0004'}
         status = self.safe_string(response, 'status')
         error = self.safe_value(response, 'error')
-        if status == 'error' or error:
+        if (status == 'error') or (error is not None):
             errors = []
             if isinstance(error, basestring):
                 errors.append(error)
-            else:
+            elif error is not None:
                 keys = list(error.keys())
                 for i in range(0, len(keys)):
                     key = keys[i]
@@ -948,22 +1173,18 @@ class bitstamp (Exchange):
                     else:
                         errors.append(value)
             reason = self.safe_value(response, 'reason', {})
-            all = self.safe_value(reason, '__all__')
-            if all is not None:
-                if isinstance(all, list):
-                    for i in range(0, len(all)):
-                        errors.append(all[i])
+            if isinstance(reason, basestring):
+                errors.append(reason)
+            else:
+                all = self.safe_value(reason, '__all__', [])
+                for i in range(0, len(all)):
+                    errors.append(all[i])
             code = self.safe_string(response, 'code')
             if code == 'API0005':
                 raise AuthenticationError(self.id + ' invalid signature, use the uid for the main account if you have subaccounts')
-            exact = self.exceptions['exact']
-            broad = self.exceptions['broad']
             feedback = self.id + ' ' + body
             for i in range(0, len(errors)):
                 value = errors[i]
-                if value in exact:
-                    raise exact[value](feedback)
-                broadKey = self.findBroadlyMatchedKey(broad, value)
-                if broadKey is not None:
-                    raise broad[broadKey](feedback)
+                self.throw_exactly_matched_exception(self.exceptions['exact'], value, feedback)
+                self.throw_broadly_matched_exception(self.exceptions['broad'], value, feedback)
             raise ExchangeError(feedback)

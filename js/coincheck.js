@@ -3,7 +3,7 @@
 //  ---------------------------------------------------------------------------
 
 const Exchange = require ('./base/Exchange');
-const { ExchangeError, NotSupported } = require ('./base/errors');
+const { BadSymbol, ExchangeError } = require ('./base/errors');
 
 //  ---------------------------------------------------------------------------
 
@@ -15,12 +15,18 @@ module.exports = class coincheck extends Exchange {
             'countries': [ 'JP', 'ID' ],
             'rateLimit': 1500,
             'has': {
+                'cancelOrder': true,
                 'CORS': false,
-                'fetchOpenOrders': true,
+                'createOrder': true,
+                'fetchBalance': true,
                 'fetchMyTrades': true,
+                'fetchOrderBook': true,
+                'fetchOpenOrders': true,
+                'fetchTicker': true,
+                'fetchTrades': true,
             },
             'urls': {
-                'logo': 'https://user-images.githubusercontent.com/1294454/27766464-3b5c3c74-5ed9-11e7-840e-31b32968e1da.jpg',
+                'logo': 'https://user-images.githubusercontent.com/51840849/87182088-1d6d6380-c2ec-11ea-9c64-8ab9f9b289f5.jpg',
                 'api': 'https://coincheck.com/api',
                 'www': 'https://coincheck.com',
                 'doc': 'https://coincheck.com/documents/exchange/api',
@@ -110,25 +116,26 @@ module.exports = class coincheck extends Exchange {
     }
 
     async fetchBalance (params = {}) {
-        let balances = await this.privateGetAccountsBalance ();
-        let result = { 'info': balances };
-        let currencies = Object.keys (this.currencies);
-        for (let i = 0; i < currencies.length; i++) {
-            let currency = currencies[i];
-            let lowercase = currency.toLowerCase ();
-            let account = this.account ();
-            if (lowercase in balances)
-                account['free'] = parseFloat (balances[lowercase]);
-            let reserved = lowercase + '_reserved';
-            if (reserved in balances)
-                account['used'] = parseFloat (balances[reserved]);
-            account['total'] = this.sum (account['free'], account['used']);
-            result[currency] = account;
+        await this.loadMarkets ();
+        const balances = await this.privateGetAccountsBalance (params);
+        const result = { 'info': balances };
+        const codes = Object.keys (this.currencies);
+        for (let i = 0; i < codes.length; i++) {
+            const code = codes[i];
+            const currencyId = this.currencyId (code);
+            if (currencyId in balances) {
+                const account = this.account ();
+                const reserved = currencyId + '_reserved';
+                account['free'] = this.safeFloat (balances, currencyId);
+                account['used'] = this.safeFloat (balances, reserved);
+                result[code] = account;
+            }
         }
         return this.parseBalance (result);
     }
 
     async fetchOpenOrders (symbol = undefined, since = undefined, limit = undefined, params = {}) {
+        await this.loadMarkets ();
         // Only BTC/JPY is meaningful
         let market = undefined;
         if (symbol !== undefined) {
@@ -184,13 +191,14 @@ module.exports = class coincheck extends Exchange {
                 symbol = market['symbol'];
             } else {
                 const [ baseId, quoteId ] = marketId.split ('_');
-                const base = this.commonCurrencyCode (baseId);
-                const quote = this.commonCurrencyCode (quoteId);
+                const base = this.safeCurrencyCode (baseId);
+                const quote = this.safeCurrencyCode (quoteId);
                 symbol = base + '/' + quote;
             }
         }
         return {
             'id': id,
+            'clientOrderId': undefined,
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
             'lastTradeTimestamp': undefined,
@@ -205,22 +213,28 @@ module.exports = class coincheck extends Exchange {
             'cost': cost,
             'fee': undefined,
             'info': order,
+            'average': undefined,
+            'trades': undefined,
         };
     }
 
     async fetchOrderBook (symbol, limit = undefined, params = {}) {
-        if (symbol !== 'BTC/JPY')
-            throw new NotSupported (this.id + ' fetchOrderBook () supports BTC/JPY only');
-        let orderbook = await this.publicGetOrderBooks (params);
-        return this.parseOrderBook (orderbook);
+        if (symbol !== 'BTC/JPY') {
+            throw new BadSymbol (this.id + ' fetchOrderBook () supports BTC/JPY only');
+        }
+        await this.loadMarkets ();
+        const response = await this.publicGetOrderBooks (params);
+        return this.parseOrderBook (response);
     }
 
     async fetchTicker (symbol, params = {}) {
-        if (symbol !== 'BTC/JPY')
-            throw new NotSupported (this.id + ' fetchTicker () supports BTC/JPY only');
-        let ticker = await this.publicGetTicker (params);
-        let timestamp = ticker['timestamp'] * 1000;
-        let last = this.safeFloat (ticker, 'last');
+        if (symbol !== 'BTC/JPY') {
+            throw new BadSymbol (this.id + ' fetchTicker () supports BTC/JPY only');
+        }
+        await this.loadMarkets ();
+        const ticker = await this.publicGetTicker (params);
+        const timestamp = this.safeTimestamp (ticker, 'timestamp');
+        const last = this.safeFloat (ticker, 'last');
         return {
             'symbol': symbol,
             'timestamp': timestamp,
@@ -264,8 +278,8 @@ module.exports = class coincheck extends Exchange {
                 const ids = marketId.split ('_');
                 baseId = ids[0];
                 quoteId = ids[1];
-                const base = this.commonCurrencyCode (baseId);
-                const quote = this.commonCurrencyCode (quoteId);
+                const base = this.safeCurrencyCode (baseId);
+                const quote = this.safeCurrencyCode (quoteId);
                 symbol = base + '/' + quote;
             }
         }
@@ -324,6 +338,7 @@ module.exports = class coincheck extends Exchange {
     }
 
     async fetchMyTrades (symbol = undefined, since = undefined, limit = undefined, params = {}) {
+        await this.loadMarkets ();
         const market = this.market (symbol);
         const response = await this.privateGetExchangeOrdersTransactions (this.extend ({}, params));
         const transactions = this.safeValue (response, 'transactions', []);
@@ -332,8 +347,9 @@ module.exports = class coincheck extends Exchange {
 
     async fetchTrades (symbol, since = undefined, limit = undefined, params = {}) {
         if (symbol !== 'BTC/JPY') {
-            throw new NotSupported (this.id + ' fetchTrades () supports BTC/JPY only');
+            throw new BadSymbol (this.id + ' fetchTrades () supports BTC/JPY only');
         }
+        await this.loadMarkets ();
         const market = this.market (symbol);
         const request = {
             'pair': market['id'],
@@ -347,50 +363,57 @@ module.exports = class coincheck extends Exchange {
     }
 
     async createOrder (symbol, type, side, amount, price = undefined, params = {}) {
-        let order = {
+        await this.loadMarkets ();
+        const request = {
             'pair': this.marketId (symbol),
         };
         if (type === 'market') {
-            let order_type = type + '_' + side;
-            order['order_type'] = order_type;
-            let prefix = (side === 'buy') ? (order_type + '_') : '';
-            order[prefix + 'amount'] = amount;
+            const order_type = type + '_' + side;
+            request['order_type'] = order_type;
+            const prefix = (side === 'buy') ? (order_type + '_') : '';
+            request[prefix + 'amount'] = amount;
         } else {
-            order['order_type'] = side;
-            order['rate'] = price;
-            order['amount'] = amount;
+            request['order_type'] = side;
+            request['rate'] = price;
+            request['amount'] = amount;
         }
-        let response = await this.privatePostExchangeOrders (this.extend (order, params));
+        const response = await this.privatePostExchangeOrders (this.extend (request, params));
+        const id = this.safeString (response, 'id');
         return {
             'info': response,
-            'id': response['id'].toString (),
+            'id': id,
         };
     }
 
     async cancelOrder (id, symbol = undefined, params = {}) {
-        return await this.privateDeleteExchangeOrdersId ({ 'id': id });
+        const request = {
+            'id': id,
+        };
+        return await this.privateDeleteExchangeOrdersId (this.extend (request, params));
     }
 
     sign (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
         let url = this.urls['api'] + '/' + this.implodeParams (path, params);
-        let query = this.omit (params, this.extractParams (path));
+        const query = this.omit (params, this.extractParams (path));
         if (api === 'public') {
-            if (Object.keys (query).length)
+            if (Object.keys (query).length) {
                 url += '?' + this.urlencode (query);
+            }
         } else {
             this.checkRequiredCredentials ();
-            let nonce = this.nonce ().toString ();
+            const nonce = this.nonce ().toString ();
             let queryString = '';
             if (method === 'GET') {
-                if (Object.keys (query).length)
+                if (Object.keys (query).length) {
                     url += '?' + this.urlencode (this.keysort (query));
+                }
             } else {
                 if (Object.keys (query).length) {
                     body = this.urlencode (this.keysort (query));
                     queryString = body;
                 }
             }
-            let auth = nonce + url + queryString;
+            const auth = nonce + url + queryString;
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'ACCESS-KEY': this.apiKey,
@@ -402,12 +425,15 @@ module.exports = class coincheck extends Exchange {
     }
 
     async request (path, api = 'public', method = 'GET', params = {}, headers = undefined, body = undefined) {
-        let response = await this.fetch2 (path, api, method, params, headers, body);
-        if (api === 'public')
+        const response = await this.fetch2 (path, api, method, params, headers, body);
+        if (api === 'public') {
             return response;
-        if ('success' in response)
-            if (response['success'])
+        }
+        if ('success' in response) {
+            if (response['success']) {
                 return response;
+            }
+        }
         throw new ExchangeError (this.id + ' ' + this.json (response));
     }
 };

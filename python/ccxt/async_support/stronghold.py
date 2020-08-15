@@ -15,7 +15,7 @@ from ccxt.base.errors import NotSupported
 from ccxt.base.errors import InvalidNonce
 
 
-class stronghold (Exchange):
+class stronghold(Exchange):
 
     def describe(self):
         return self.deep_extend(super(stronghold, self).describe(), {
@@ -42,19 +42,23 @@ class stronghold (Exchange):
                 'password': True,
             },
             'has': {
-                'fetchMarkets': True,
-                'fetchCurrencies': True,
-                'fetchOrderBook': True,
-                'fetchOpenOrders': True,
-                'fetchTrades': True,
-                'fetchMyTrades': True,
-                'fetchDepositAddress': False,
+                'cancelOrder': True,
                 'createDepositAddress': True,
-                'withdraw': True,
+                'createOrder': True,
+                'fetchAccounts': True,
+                'fetchBalance': True,
+                'fetchDepositAddress': False,
+                'fetchCurrencies': True,
+                'fetchMarkets': True,
+                'fetchMyTrades': True,
+                'fetchOpenOrders': True,
+                'fetchOrderBook': True,
                 'fetchTicker': False,
                 'fetchTickers': False,
-                'fetchAccounts': True,
+                'fetchTime': True,
+                'fetchTrades': True,
                 'fetchTransactions': True,
+                'withdraw': True,
             },
             'api': {
                 'public': {
@@ -140,7 +144,7 @@ class stronghold (Exchange):
     async def get_active_account(self):
         if self.options['accountId'] is not None:
             return self.options['accountId']
-        await self.loadAccounts()
+        await self.load_accounts()
         numAccounts = len(self.accounts)
         if numAccounts > 0:
             return self.accounts[0]['id']
@@ -197,12 +201,12 @@ class stronghold (Exchange):
         for i in range(0, len(data)):
             entry = data[i]
             marketId = entry['id']
-            baseId = entry['baseAssetId']
-            quoteId = entry['counterAssetId']
+            baseId = self.safe_string(entry, 'baseAssetId')
+            quoteId = self.safe_string(entry, 'counterAssetId')
             baseAssetId = baseId.split('/')[0]
             quoteAssetId = quoteId.split('/')[0]
-            base = self.common_currency_code(baseAssetId)
-            quote = self.common_currency_code(quoteAssetId)
+            base = self.safe_currency_code(baseAssetId)
+            quote = self.safe_currency_code(quoteAssetId)
             symbol = base + '/' + quote
             limits = {
                 'amount': {
@@ -224,6 +228,7 @@ class stronghold (Exchange):
                 'precision': precision,
                 'info': entry,
                 'limits': limits,
+                'active': None,
             }
         return result
 
@@ -269,7 +274,7 @@ class stronghold (Exchange):
             entry = data[i]
             assetId = self.safe_string(entry, 'id')
             currencyId = self.safe_string(entry, 'code')
-            code = self.common_currency_code(currencyId)
+            code = self.safe_currency_code(currencyId)
             precision = self.safe_integer(entry, 'displayDecimalsFull')
             result[code] = {
                 'code': code,
@@ -279,6 +284,7 @@ class stronghold (Exchange):
                 'active': None,
                 'name': None,
                 'limits': limits,
+                'fee': None,
             }
         return result
 
@@ -413,7 +419,7 @@ class stronghold (Exchange):
         currency = None
         if code is not None:
             currency = self.currency(code)
-        return self.parseTransactions(response['result'], currency, since, limit)
+        return self.parse_transactions(response['result'], currency, since, limit)
 
     def parse_transaction_status(self, status):
         statuses = {
@@ -443,7 +449,7 @@ class stronghold (Exchange):
         code = None
         if assetId is not None:
             currencyId = assetId.split('/')[0]
-            code = self.common_currency_code(currencyId)
+            code = self.safe_currency_code(currencyId)
         else:
             if currency is not None:
                 code = currency['code']
@@ -548,6 +554,7 @@ class stronghold (Exchange):
                 cost = amount * price
         return {
             'id': id,
+            'clientOrderId': None,
             'info': order,
             'symbol': symbol,
             'datetime': datetime,
@@ -563,6 +570,7 @@ class stronghold (Exchange):
             'status': None,
             'type': None,
             'average': None,
+            'fee': None,
         }
 
     def nonce(self):
@@ -579,20 +587,21 @@ class stronghold (Exchange):
             'venueId': self.options['venueId'],
             'accountId': await self.get_active_account(),
         }, params)
-        if not('accountId' in list(request.keys())):
+        if not ('accountId' in request):
             raise ArgumentsRequired(self.id + " fetchBalance requires either the 'accountId' extra parameter or exchange.options['accountId'] = 'YOUR_ACCOUNT_ID'.")
         response = await self.privateGetVenuesVenueIdAccountsAccountId(request)
-        balances = response['result']['balances']
-        result = {}
+        balances = self.safe_value(response['result'], 'balances')
+        result = {'info': response}
         for i in range(0, len(balances)):
-            entry = balances[i]
-            asset = entry['assetId'].split('/')[0]
-            code = self.common_currency_code(asset)
-            account = {}
-            account['total'] = self.safe_float(entry, 'amount', 0.0)
-            account['free'] = self.safe_float(entry, 'availableForTrade', 0.0)
-            account['used'] = account['total'] - account['free']
-            result[code] = account
+            balance = balances[i]
+            assetId = self.safe_string(balance, 'assetId')
+            if assetId is not None:
+                currencyId = assetId.split('/')[0]
+                code = self.safe_currency_code(currencyId)
+                account = {}
+                account['total'] = self.safe_float(balance, 'amount')
+                account['free'] = self.safe_float(balance, 'availableForTrade')
+                result[code] = account
         return self.parse_balance(result)
 
     async def fetch_my_trades(self, symbol=None, since=None, limit=None, params={}):
@@ -617,7 +626,7 @@ class stronghold (Exchange):
         request = self.extend({
             'venueId': self.options['venueId'],
             'accountId': await self.get_active_account(),
-            'assetId': self.currencyId(code),
+            'assetId': self.currency_id(code),
             'paymentMethod': paymentMethod,
         }, params)
         if not request['accountId']:
@@ -652,7 +661,7 @@ class stronghold (Exchange):
         request = self.extend({
             'venueId': self.options['venueId'],
             'accountId': await self.get_active_account(),
-            'assetId': self.currencyId(code),
+            'assetId': self.currency_id(code),
             'amount': amount,
             'paymentMethod': paymentMethod,
             'paymentMethodDetails': {
@@ -684,7 +693,7 @@ class stronghold (Exchange):
             'info': response,
         }
 
-    def handle_errors(self, code, reason, url, method, headers, body, response):
+    def handle_errors(self, code, reason, url, method, headers, body, response, requestHeaders, requestBody):
         if not response:
             return  # fallback to base error handler by default
         #

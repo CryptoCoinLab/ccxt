@@ -6,6 +6,9 @@ include $root . '/ccxt.php';
 
 date_default_timezone_set ('UTC');
 
+echo 'PHP v' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '.' . PHP_RELEASE_VERSION . "\n";
+echo 'CCXT v' . \ccxt\Exchange::VERSION . "\n";
+
 if (count ($argv) > 2) {
 
     $id = $argv[1];
@@ -49,11 +52,11 @@ if (count ($argv) > 2) {
 
         $exchange->load_markets ();
 
-        if (method_exists ($exchange, $member)) {
+        // if (method_exists ($exchange, $member)) {
 
             try {
 
-                echo $exchange->id . '->' . $member . ' (' . implode (', ', $args) . ")\n";
+                echo $exchange->id . '->' . $member . ' (' . @implode (', ', $args) . ")\n";
 
                 $result = call_user_func_array (array ($exchange, $member), $args);
 
@@ -66,16 +69,21 @@ if (count ($argv) > 2) {
             } catch (\ccxt\ExchangeError $e) {
 
                 echo get_class ($e) . ': ' . $e->getMessage () . "\n";
+
+            } catch (Exception $e) {
+
+                echo get_class ($e) . ': ' . $e->getMessage () . "\n";
+
+                if (property_exists ($exchange, $member)) {
+
+                    echo print_r ($exchange->$member, true) . "\n";
+
+                } else {
+
+                    echo $exchange->id . '->' . $member . ": no such property\n";
+                }
             }
-
-        } else if (property_exists ($exchange, $member)) {
-
-            echo print_r ($exchange->$member, true) . "\n";
-
-        } else {
-
-            echo $exchange->id . '->' . $member . ": no such property\n";
-        }
+        // }
 
     } else {
 
